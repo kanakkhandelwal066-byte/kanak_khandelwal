@@ -1,0 +1,11 @@
+import { NextResponse } from 'next/server';
+import { getDashboardMetrics } from '@/lib/services/dashboard.service';
+
+export async function GET() {
+  try {
+    const metrics = await getDashboardMetrics();
+    return NextResponse.json(metrics);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to fetch dashboard metrics' }, { status: 500 });
+  }
+}

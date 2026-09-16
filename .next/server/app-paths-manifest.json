@@ -1,0 +1,10 @@
+{
+  "/page": "app/page.js",
+  "/gear/page": "app/gear/page.js",
+  "/api/gear/route": "app/api/gear/route.js",
+  "/api/categories/route": "app/api/categories/route.js",
+  "/api/metrics/route": "app/api/metrics/route.js",
+  "/api/users/route": "app/api/users/route.js",
+  "/api/notifications/route": "app/api/notifications/route.js",
+  "/api/bookings/route": "app/api/bookings/route.js"
+}

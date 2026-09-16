@@ -1,0 +1,113 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                String         @id @default(uuid())
+  email             String         @unique
+  name              String
+  role              String         @default("STUDENT") // STUDENT | ADMIN
+  department        String?
+  phone             String?
+  maxActiveBookings Int?           @default(3)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  bookings          Booking[]
+  processedReturns  ReturnRecord[] @relation("ProcessedBy")
+  notifications     Notification[]
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  icon        String?
+  items       GearItem[]
+}
+
+model GearItem {
+  id            String     @id @default(uuid())
+  categoryId    String
+  category      Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name          String
+  model         String?
+  description   String?
+  imageUrl      String?
+  depositAmount Float      @default(0.0)
+  dailyLateFee  Float      @default(5.0)
+  maxBorrowDays Int        @default(7)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  units         GearUnit[]
+  bookings      Booking[]
+}
+
+model GearUnit {
+  id           String    @id @default(uuid())
+  gearItemId   String
+  gearItem     GearItem  @relation(fields: [gearItemId], references: [id], onDelete: Cascade)
+  unitTag      String    @unique
+  serialNumber String?
+  condition    String    @default("GOOD") // EXCELLENT | GOOD | NEEDS_MAINTENANCE | DAMAGED | MISSING
+  isAvailable  Boolean   @default(true)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  bookings     Booking[]
+}
+
+model Booking {
+  id           String        @id @default(uuid())
+  bookingCode  String        @unique
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gearItemId   String
+  gearItem     GearItem      @relation(fields: [gearItemId], references: [id], onDelete: Cascade)
+  gearUnitId   String?
+  gearUnit     GearUnit?     @relation(fields: [gearUnitId], references: [id], onDelete: SetNull)
+  purpose      String
+  startDate    DateTime
+  endDate      DateTime
+  actualReturn DateTime?
+  status       String        @default("PENDING") // PENDING | APPROVED | ISSUED | RETURNED | REJECTED | CANCELLED
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  returnRecord ReturnRecord?
+}
+
+model ReturnRecord {
+  id                String   @id @default(uuid())
+  bookingId         String   @unique
+  booking           Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  staffUserId       String
+  staffUser         User     @relation("ProcessedBy", fields: [staffUserId], references: [id])
+  actualReturnDate  DateTime @default(now())
+  conditionOnReturn String   @default("GOOD") // EXCELLENT | GOOD | NEEDS_MAINTENANCE | DAMAGED | MISSING
+  daysOverdue       Int      @default(0)
+  lateFeeCharged    Float    @default(0.0)
+  depositRefunded   Float    @default(0.0)
+  notes             String?
+  createdAt         DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // UPCOMING, OVERDUE, STATUS_CHANGE
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model SystemSetting {
+  key   String @id
+  value String
+}
