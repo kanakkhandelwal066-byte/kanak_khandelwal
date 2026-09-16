@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import StatusBadge from '@/app/components/StatusBadge';
 import ReturnModal from '@/app/components/ReturnModal';
-import { RotateCcw, AlertTriangle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import TransferModal from '@/app/components/TransferModal';
+import { RotateCcw, AlertTriangle, CheckCircle, ArrowRightLeft, RefreshCw, History } from 'lucide-react';
 
 export default function AdminReturnsPage() {
   const [issuedBookings, setIssuedBookings] = useState<any[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
+  const [selectedTransferBooking, setSelectedTransferBooking] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchIssuedQueue = async () => {
@@ -33,10 +35,10 @@ export default function AdminReturnsPage() {
     <div className="space-y-8 animate-fade-in">
       <div>
         <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          <RotateCcw className="w-6 h-6 text-emerald-600" /> Lending Staff Desk: Equipment Returns & Refund Accounting
+          <RotateCcw className="w-6 h-6 text-emerald-600" /> Lending Staff Desk: Equipment Returns & Loan Transfers
         </h2>
         <p className="text-xs text-slate-500 mt-1">
-          Inspect returned equipment, record physical condition (Good/Damaged/Missing), and calculate refundable deposit minus late fees.
+          Inspect returned equipment, record physical condition, process late fee deductions, or transfer active loans to new borrowers.
         </p>
       </div>
 
@@ -86,7 +88,7 @@ export default function AdminReturnsPage() {
                   <div>
                     <h4 className="font-extrabold text-slate-900 text-base">{b.gearItem?.name}</h4>
                     <p className="text-xs text-slate-600">
-                      Borrower: <strong className="text-slate-800">{b.user?.name}</strong> ({b.user?.department})
+                      Current Borrower: <strong className="text-slate-800">{b.user?.name}</strong> ({b.user?.department})
                     </p>
                   </div>
 
@@ -95,15 +97,33 @@ export default function AdminReturnsPage() {
                     <span>Expected Due Date: <strong>{dueDate.toLocaleString()}</strong></span>
                     <span>Held Deposit: <strong>${b.gearItem?.depositAmount.toFixed(2)}</strong></span>
                   </div>
+
+                  {b.transferHistory && b.transferHistory.length > 0 && (
+                    <div className="bg-indigo-50/80 border border-indigo-200 p-2.5 rounded-xl text-[11px] text-indigo-900 mt-2">
+                      <strong className="flex items-center gap-1">
+                        <History className="w-3.5 h-3.5" /> Transferred from {b.transferHistory[0].fromUser?.name} to {b.transferHistory[0].toUser?.name}
+                      </strong>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col items-end gap-2">
-                  <button
-                    onClick={() => setSelectedBooking(b)}
-                    className="py-2.5 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-md shadow-emerald-600/30 flex items-center gap-1.5"
-                  >
-                    <RotateCcw className="w-4 h-4" /> Process Return & Inspect
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedTransferBooking(b)}
+                      className="py-2 px-3.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold text-xs transition flex items-center gap-1.5"
+                      title="Transfer loan to another borrower"
+                    >
+                      <ArrowRightLeft className="w-3.5 h-3.5" /> Transfer
+                    </button>
+                    <button
+                      onClick={() => setSelectedBooking(b)}
+                      className="py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-md shadow-emerald-600/30 flex items-center gap-1.5"
+                    >
+                      <RotateCcw className="w-4 h-4" /> Process Return
+                    </button>
+                  </div>
+
                   {isOverdue && (
                     <span className="text-[11px] font-bold text-rose-600">
                       Estimated Late Fee: ${(daysOverdue * b.gearItem?.dailyLateFee).toFixed(2)}
@@ -121,6 +141,15 @@ export default function AdminReturnsPage() {
         <ReturnModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
+          onSuccess={fetchIssuedQueue}
+        />
+      )}
+
+      {/* Transfer Modal */}
+      {selectedTransferBooking && (
+        <TransferModal
+          booking={selectedTransferBooking}
+          onClose={() => setSelectedTransferBooking(null)}
           onSuccess={fetchIssuedQueue}
         />
       )}

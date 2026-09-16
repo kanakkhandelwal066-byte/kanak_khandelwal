@@ -8,18 +8,21 @@ generator client {
 }
 
 model User {
-  id                String         @id @default(uuid())
-  email             String         @unique
+  id                String           @id @default(uuid())
+  email             String           @unique
   name              String
-  role              String         @default("STUDENT") // STUDENT | ADMIN
+  role              String           @default("STUDENT") // STUDENT | ADMIN
   department        String?
   phone             String?
-  maxActiveBookings Int?           @default(3)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  maxActiveBookings Int?             @default(3)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
   bookings          Booking[]
-  processedReturns  ReturnRecord[] @relation("ProcessedBy")
+  processedReturns  ReturnRecord[]   @relation("ProcessedBy")
   notifications     Notification[]
+  transfersSent     TransferRecord[] @relation("TransferredFrom")
+  transfersReceived TransferRecord[] @relation("TransferredTo")
+  transfersHandled  TransferRecord[] @relation("TransferredBy")
 }
 
 model Category {
@@ -62,23 +65,24 @@ model GearUnit {
 }
 
 model Booking {
-  id           String        @id @default(uuid())
-  bookingCode  String        @unique
-  userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gearItemId   String
-  gearItem     GearItem      @relation(fields: [gearItemId], references: [id], onDelete: Cascade)
-  gearUnitId   String?
-  gearUnit     GearUnit?     @relation(fields: [gearUnitId], references: [id], onDelete: SetNull)
-  purpose      String
-  startDate    DateTime
-  endDate      DateTime
-  actualReturn DateTime?
-  status       String        @default("PENDING") // PENDING | APPROVED | ISSUED | RETURNED | REJECTED | CANCELLED
-  notes        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  returnRecord ReturnRecord?
+  id              String           @id @default(uuid())
+  bookingCode     String           @unique
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gearItemId      String
+  gearItem        GearItem         @relation(fields: [gearItemId], references: [id], onDelete: Cascade)
+  gearUnitId      String?
+  gearUnit        GearUnit?        @relation(fields: [gearUnitId], references: [id], onDelete: SetNull)
+  purpose         String
+  startDate       DateTime
+  endDate         DateTime
+  actualReturn    DateTime?
+  status          String           @default("PENDING") // PENDING | APPROVED | ISSUED | RETURNED | REJECTED | CANCELLED
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  returnRecord    ReturnRecord?
+  transferHistory TransferRecord[]
 }
 
 model ReturnRecord {
@@ -96,13 +100,27 @@ model ReturnRecord {
   createdAt         DateTime @default(now())
 }
 
+model TransferRecord {
+  id            String   @id @default(uuid())
+  bookingId     String
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  fromUserId    String
+  fromUser      User     @relation("TransferredFrom", fields: [fromUserId], references: [id])
+  toUserId      String
+  toUser        User     @relation("TransferredTo", fields: [toUserId], references: [id])
+  staffUserId   String
+  staffUser     User     @relation("TransferredBy", fields: [staffUserId], references: [id])
+  transferredAt DateTime @default(now())
+  reason        String?
+}
+
 model Notification {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
   message   String
-  type      String   // UPCOMING, OVERDUE, STATUS_CHANGE
+  type      String   // UPCOMING, OVERDUE, STATUS_CHANGE, TRANSFER
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }

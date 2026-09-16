@@ -2,13 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import StatusBadge from '../components/StatusBadge';
+import TransferModal from '../components/TransferModal';
 import { useUser } from '../context/UserContext';
-import { BookmarkCheck, Clock, Calendar, AlertCircle, RefreshCw, XCircle } from 'lucide-react';
+import { BookmarkCheck, Clock, Calendar, AlertCircle, RefreshCw, XCircle, ArrowRightLeft, History } from 'lucide-react';
 
 export default function BookingsPage() {
   const { currentUser } = useUser();
+  const isAdmin = currentUser?.role === 'ADMIN';
+
   const [bookings, setBookings] = useState<any[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [selectedTransferBooking, setSelectedTransferBooking] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchBookings = async () => {
@@ -53,7 +57,7 @@ export default function BookingsPage() {
           <BookmarkCheck className="w-6 h-6 text-sky-600" /> Borrowing Reservations & History
         </h2>
         <p className="text-xs text-slate-500 mt-1">
-          {currentUser?.role === 'ADMIN' ? 'Viewing all system borrowings' : `Bookings history for ${currentUser?.name}`}
+          {currentUser?.role === 'ADMIN' ? 'Viewing all system borrowings & transfer audit logs' : `Bookings history for ${currentUser?.name}`}
         </p>
       </div>
 
@@ -90,6 +94,7 @@ export default function BookingsPage() {
           {bookings.map((b) => {
             const now = new Date();
             const isOverdue = b.status === 'ISSUED' && new Date(b.endDate) < now;
+            const canTransfer = (b.status === 'ISSUED' || b.status === 'APPROVED') && isAdmin;
 
             return (
               <div
@@ -103,7 +108,7 @@ export default function BookingsPage() {
                     </span>
                     <div>
                       <h4 className="font-extrabold text-slate-900 text-base">{b.gearItem?.name}</h4>
-                      <p className="text-xs text-slate-500">Borrower: {b.user?.name} ({b.user?.department})</p>
+                      <p className="text-xs text-slate-500">Current Borrower: <strong className="text-slate-800">{b.user?.name}</strong> ({b.user?.department})</p>
                     </div>
                   </div>
 
@@ -112,6 +117,16 @@ export default function BookingsPage() {
                       <StatusBadge status="OVERDUE" />
                     ) : (
                       <StatusBadge status={b.status} />
+                    )}
+
+                    {canTransfer && (
+                      <button
+                        onClick={() => setSelectedTransferBooking(b)}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold text-xs transition flex items-center gap-1"
+                        title="Transfer loan to another borrower"
+                      >
+                        <ArrowRightLeft className="w-3.5 h-3.5" /> Transfer Loan
+                      </button>
                     )}
 
                     {b.status === 'PENDING' && (
@@ -147,6 +162,25 @@ export default function BookingsPage() {
                   </div>
                 </div>
 
+                {/* Transfer History Audit Trail */}
+                {b.transferHistory && b.transferHistory.length > 0 && (
+                  <div className="bg-indigo-50/70 border border-indigo-200 p-3.5 rounded-2xl text-xs space-y-1.5">
+                    <p className="font-bold text-indigo-950 flex items-center gap-1.5">
+                      <History className="w-4 h-4 text-indigo-600" /> Transfer Audit History ({b.transferHistory.length})
+                    </p>
+                    {b.transferHistory.map((t: any) => (
+                      <div key={t.id} className="text-slate-700 text-[11px] flex justify-between border-t border-indigo-200/60 pt-1">
+                        <span>
+                          Transferred from <strong>{t.fromUser?.name}</strong> $\rightarrow$ <strong>{t.toUser?.name}</strong> by {t.staffUser?.name}
+                        </span>
+                        <span className="text-slate-500">
+                          {new Date(t.transferredAt).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Return Record Invoice Breakdown if Returned */}
                 {b.returnRecord && (
                   <div className="bg-emerald-50/70 border border-emerald-200 p-3.5 rounded-2xl text-xs space-y-1">
@@ -166,6 +200,15 @@ export default function BookingsPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Transfer Modal */}
+      {selectedTransferBooking && (
+        <TransferModal
+          booking={selectedTransferBooking}
+          onClose={() => setSelectedTransferBooking(null)}
+          onSuccess={fetchBookings}
+        />
       )}
     </div>
   );

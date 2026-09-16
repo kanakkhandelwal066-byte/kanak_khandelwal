@@ -38,6 +38,14 @@ export async function GET(req: NextRequest) {
         returnRecord: {
           include: { staffUser: true },
         },
+        transferHistory: {
+          include: {
+            fromUser: true,
+            toUser: true,
+            staffUser: true,
+          },
+          orderBy: { transferredAt: 'desc' },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
