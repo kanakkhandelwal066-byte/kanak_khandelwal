@@ -1,4 +1,4 @@
-// File: C:\Users\HP\.gemini\antigravity\scratch\college-av-lending-system\app\api\notifications\route.ts
+// File: /workspaces/kanak_khandelwal/app/api/notifications/route.ts
 import * as entry from '../../../../../app/api/notifications/route.js'
 import type { NextRequest } from 'next/server.js'
 
